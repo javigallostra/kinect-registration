@@ -18,8 +18,6 @@
 
 #include <signal.h> // for exiting the loop
 
-#include "filterCloud.h"
-
 #include <cmath>
 
 
@@ -46,8 +44,6 @@ class ImageGrabber
 
 		PointCloud::Ptr frame_cloud;
 		pcl::PCDWriter pcd_writer;
-
-		cloudFilters filters;
 
 		int initializeGrabber ();
 

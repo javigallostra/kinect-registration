@@ -50,8 +50,6 @@ void ImageGrabber::initParams ()
 	undistorted_frame = new libfreenect2::Frame (512, 424, 4);
 	registered_frame = new libfreenect2::Frame (512, 424, 4);
 	frame_cloud.reset(new PointCloud);
-	// Set filter verbose
-	filters.setVerbose(verbose);
 }
 
 const char * ImageGrabber::generateFilename ()
@@ -83,7 +81,6 @@ PointCloud::Ptr ImageGrabber::getCurrentFrameCloud ()
 
 void ImageGrabber::captureFrame ()
 {
-	PointCloud::Ptr raw_cloud (new PointCloud);
 	// Release previous frames
 	listener->release(frames);
 	// Wait for frames
@@ -92,13 +89,13 @@ void ImageGrabber::captureFrame ()
 	rgb_frame = frames[libfreenect2::Frame::Color];
 	ir_frame = frames[libfreenect2::Frame::Ir];
 	depth_frame = frames[libfreenect2::Frame::Depth];
-	// Register depth to rgb
+	// Register depth to rgb and flip data
 	registration->apply(rgb_frame, depth_frame, undistorted_frame, registered_frame);
 	// Fill pcl cloud
-	raw_cloud->width = image_width;
-	raw_cloud->height = image_height;
-	raw_cloud->is_dense = false;
-	raw_cloud->points.resize (raw_cloud->width * raw_cloud->height);
+	frame_cloud->width = image_width;
+	frame_cloud->height = image_height;
+	frame_cloud->is_dense = false;
+	frame_cloud->points.resize (frame_cloud->width * frame_cloud->height);
 	float X, Y, Z, RGB;
 	int counter = 0;
 	for (int xi = width_gap; xi < (registered_frame->width - width_gap); xi++)
@@ -106,15 +103,13 @@ void ImageGrabber::captureFrame ()
 		for (int yi = height_gap; yi < (registered_frame->height - height_gap); yi++)
 		{
 			registration->getPointXYZRGB(undistorted_frame, registered_frame, yi, xi, X, Y, Z, RGB);
-			raw_cloud->points[counter].x = X;
-			raw_cloud->points[counter].y = Y;
-			raw_cloud->points[counter].z = Z;
-			raw_cloud->points[counter].rgb = RGB;
+			frame_cloud->points[counter].x = -X;
+			frame_cloud->points[counter].y = Y;
+			frame_cloud->points[counter].z = Z;
+			frame_cloud->points[counter].rgb = RGB;
 			counter++;
 		}
 	}
-	// Filter raw cloud into frame_cloud
-	filters.applyAllFilters(raw_cloud, frame_cloud);
 }
 
 void ImageGrabber::saveFrameAsPCD ()

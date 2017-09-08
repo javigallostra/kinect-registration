@@ -26,10 +26,11 @@ add_library(visualization visualization.cpp)
 add_library(filterCloud filterCloud.cpp)
 add_library(kp_detectors kp_detectors.cpp)
 add_library(fine_align fine_align.cpp)
+add_library(surface_reconstruction surface_reconstruction.cpp)
 
 add_executable(main main.cpp)
 
 target_link_libraries(
 main ${OpenCV_LIBS} ${PCL_LIBRARIES} ${freenect2_LIBRARIES} coarse_align
-kp_detectors visualization fine_align acquisition filterCloud
+kp_detectors visualization fine_align acquisition filterCloud surface_reconstruction
 )

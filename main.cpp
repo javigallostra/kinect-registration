@@ -4,6 +4,7 @@
 #include "visualization.h"
 #include "filterCloud.h"
 #include "fine_align.h"
+#include "surface_reconstruction.h"
 
 #include <pcl/io/pcd_io.h>
 #include <pcl/common/common_headers.h>
@@ -13,6 +14,7 @@
 #include <dirent.h>
 #include <ctime>
 #include <sstream>
+
 
 //------------------------------------//
 // Load a .pcd file into a PointCloud //
@@ -68,6 +70,8 @@ int main (int argc, char** argv)
 	bool load_files = false;
 	bool save_files = false;
 	bool verbose = false;
+	bool continuous = false;
+	bool view_icp = false;
 	std::string kp_type = "ISS3D";
 	// Parse command-line arguments
 	if (argc > 1)
@@ -88,10 +92,18 @@ int main (int argc, char** argv)
 			{
 				save_files = true;
 			}
+			else if (argument == "-c")
+			{
+				continuous = true;
+			}
+			else if (argument == "-i")
+			{
+				view_icp = true;
+			}
 			else if (argument == "-k")
 			{
 				std::string type = std::string(argv[i+1]);
-				if (type == "ISS3D" or type == "SIFT3D")
+				if (type == "ISS3D" or type == "SIFT3D" or type == "NARF")
 				{
 					kp_type = type;
 				}
@@ -115,6 +127,8 @@ int main (int argc, char** argv)
 	PointCloudNormal::Ptr sourceNormalCloud (new PointCloudNormal);
 	PointCloudNormal::Ptr targetNormalCloud (new PointCloudNormal);
 	PointCloudNormal::Ptr transICPNormalCloud (new PointCloudNormal);
+	PointCloudNormal::Ptr surfaceComposCloud (new PointCloudNormal);
+	pcl::PolygonMesh::Ptr finalSurface (new pcl::PolygonMesh);
 	Eigen::Matrix4f transformation = Eigen::Matrix4f::Identity();
 	std::vector<Eigen::Matrix4f> transformations_vector;
 	int pictures = 0;
@@ -127,6 +141,8 @@ int main (int argc, char** argv)
 	coarse_aligner.setKeypointDetectorType(kp_type);
 	FineAligner fine_aligner (verbose);
 	ImageGrabber grabber (false);
+	cloudFilters filters;
+	surfaceReconstructor surfaceConstructor (verbose);
 
 	// Load first cloud
 	if (capture)
@@ -145,13 +161,22 @@ int main (int argc, char** argv)
 	while (viewerObj.getPressedID() != 2)
 	{
 		start = std::clock();
-		// 1 - When Enter, process cloud
-		if (viewerObj.getPressedID() == 1 and load_more)
+		// 1.1 - When Enter or continuous, process cloud
+		if ((viewerObj.getPressedID() == 1 and load_more) or continuous)
 		{
+			// If save adn capture are activated, save file
+			if (save_files and capture) {grabber.saveFrameAsPCD();}
+			// If enter and continuous, stop continuous
+			if (continuous and (viewerObj.getPressedID() == 1))
+			{
+				continuous = false;
+				load_more = false;
+			}
+			// Process cloud
 			if (pictures == 0)
 			{
 				// Grab first cloud
-				pcl::copyPointCloud(*grabberCloud, *targetCloud);
+				filters.applyAllFilters(grabberCloud, targetCloud);
 				// Add to composition
 				*composCloud += *targetCloud;
 			}
@@ -161,7 +186,7 @@ int main (int argc, char** argv)
 				if (pictures == 1)
 				{
 					// Get source
-					pcl::copyPointCloud(*grabberCloud, *sourceCloud);
+					filters.applyAllFilters(grabberCloud, sourceCloud);
 					// Align
 					coarse_aligner.align(sourceCloud, targetCloud);
 				}
@@ -172,26 +197,54 @@ int main (int argc, char** argv)
 					pcl::copyPointCloud(*sourceCloud, *targetCloud);
 					// New source filtered
 					sourceCloud.reset(new PointCloud);
-					pcl::copyPointCloud(*grabberCloud, *sourceCloud);
+					filters.applyAllFilters(grabberCloud, sourceCloud);
 					// Align
 					coarse_aligner.alignToLast(sourceCloud);
 				}
+				viewerObj.updateCorrespondenceTransform(coarse_aligner.getFinalTransformation());
 				// FINE ALIGN
 				pcl::concatenateFields(*targetCloud, *(coarse_aligner.getTargetNormals()), *targetNormalCloud);
 				pcl::concatenateFields(*sourceCloud, *(coarse_aligner.getSourceNormals()), *sourceNormalCloud);
-				pcl::transformPointCloud(*sourceNormalCloud, *transICPNormalCloud, coarse_aligner.getFinalTransformation());
-				fine_aligner.align(transICPNormalCloud, targetNormalCloud);
-				// Get fine transformation
+				// Visualize every icp iteration
+				if (view_icp)
+				{
+					fine_aligner.setMaximumIterations(1);
+					// First iteration
+					fine_aligner.align(sourceNormalCloud, targetNormalCloud, coarse_aligner.getFinalTransformation());
+					viewerObj.updateCorrespondenceTransform(fine_aligner.getFinalTransformation());
+					viewerObj.updateClouds(sourceCloud, targetCloud, composCloud, sourceKp, targetKp);
+					viewer->spinOnce(10);
+					boost::this_thread::sleep (boost::posix_time::microseconds (1000));
+					Eigen::Matrix4f last_align = Eigen::Matrix4f::Identity();
+					bool has_converged = false;
+					int iterations = 1;
+					// Iteration loop
+					while ((not has_converged) and (iterations <= 30))
+					{
+						last_align = fine_aligner.getFinalTransformation();
+						fine_aligner.align(sourceNormalCloud, targetNormalCloud, fine_aligner.getFinalTransformation());
+						viewerObj.updateCorrespondenceTransform(fine_aligner.getFinalTransformation());
+						viewerObj.updateClouds(sourceCloud, targetCloud, composCloud, sourceKp, targetKp);
+						viewer->spinOnce(10);
+						boost::this_thread::sleep (boost::posix_time::microseconds (1000));
+						has_converged = last_align.isApprox(fine_aligner.getFinalTransformation(), 1e-5);
+						iterations++;
+					}
+				}
+				// Do everything at once
+				else
+				{
+					fine_aligner.align(sourceNormalCloud, targetNormalCloud, coarse_aligner.getFinalTransformation());
+				}
+				// Get transformation
 				transformations_vector.push_back(fine_aligner.getFinalTransformation());
-				// Get coarse transformation
-				transformations_vector.push_back(coarse_aligner.getFinalTransformation());
 				// Get keypoint clouds
 				sourceKp = coarse_aligner.getSourceKeypoints();
 	        	targetKp = coarse_aligner.getTargetKeypoints();
 			}
 			// Apply previous transformations and compose cloud
 			*transSourceCloud = *sourceCloud;
-			for (int i = 0; i < transformations_vector.size(); i++)
+			for (int i = transformations_vector.size() -1; i >= 0; i--)
 			{
 				transformation = transformations_vector[i];
 				pcl::transformPointCloud(*transSourceCloud, *transSourceCloud, transformation);
@@ -202,6 +255,14 @@ int main (int argc, char** argv)
 			viewerObj.updateCorrespondences(coarse_aligner.getFilteredCorrespondences(), sourceKp, targetKp);
 			viewerObj.setPressedID(0);
 			pictures += 1;
+		}
+		// 1.2 - When BackSpace is pressed, reconstruct surface
+		else if (viewerObj.getPressedID() == 3)
+		{
+			// Reconstruct and display changes
+			surfaceConstructor.reconstruct(composCloud, surfaceComposCloud, finalSurface);
+			viewerObj.addFinalMesh(finalSurface);
+			viewerObj.setPressedID(0);
 		}
 		// 2 - Load new image
 		if (capture)
@@ -219,6 +280,7 @@ int main (int argc, char** argv)
 			else if (pictures != last_loaded)
 			{
 				load_cloud("./images/" + files_to_load[pictures], grabberCloud, verbose);
+				filters.applyAllFilters(grabberCloud, grabberCloud);
 				last_loaded = pictures;
 			}
 		}
@@ -229,7 +291,7 @@ int main (int argc, char** argv)
 		viewerObj.updateFPS(fps_str.str());
 		viewerObj.updateGrabber(grabberCloud);
 		viewer->spinOnce(10);
-		boost::this_thread::sleep (boost::posix_time::microseconds (10000));
+		boost::this_thread::sleep (boost::posix_time::microseconds (1000));
 	}
 	std::cout << "Escape pressed, exiting program." << std::endl;
 	return(0);

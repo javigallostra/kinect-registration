@@ -31,6 +31,10 @@ class Viewer
 
 		void updateFinalCorrespondences (pcl::CorrespondencesPtr final_correspondences);
 
+		void updateCorrespondenceTransform (Eigen::Matrix4f new_transform);
+
+		void addFinalMesh (pcl::PolygonMesh::Ptr mesh_in);
+
 		void updateFPS (std::string fps);
 
 		int getPressedID ();

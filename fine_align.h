@@ -12,9 +12,11 @@ class FineAligner
 
     public:
 
-    	void align (PointCloudNormal::Ptr source_cloud, PointCloudNormal::Ptr target_cloud);
+    	void align (PointCloudNormal::Ptr source_cloud, PointCloudNormal::Ptr target_cloud, Eigen::Matrix4f transformation_guess);
 
     	Eigen::Matrix4f getFinalTransformation ();
+
+    	void setMaximumIterations (int max_iterations);
 
     	FineAligner (bool verb);
 };

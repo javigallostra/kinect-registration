@@ -14,6 +14,10 @@ void Viewer::keyboardEventOccurred (const pcl::visualization::KeyboardEvent &eve
 		{
 			*pressedID = 2;
 		}
+		else if (key == "BackSpace")
+		{
+			*pressedID = 3;
+		}
 		else
 		{
 			*pressedID = 0;
@@ -42,11 +46,11 @@ void Viewer::displayClouds (PointCloud::Ptr grabberCloud, PointCloud::Ptr source
     // Display source kp
     pcl::visualization::PointCloudColorHandlerCustom<PointT> src_kp_color (sourceKp, 255, 0, 0);
     viewer->addPointCloud<PointT> (sourceKp, src_kp_color, "sourceKp", vsour);
-    viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 2, "sourceKp");
+    viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "sourceKp");
     // Display target kp
 	pcl::visualization::PointCloudColorHandlerCustom<PointT> tgt_kp_color (targetKp, 0, 255, 0);
    	viewer->addPointCloud<PointT> (targetKp, tgt_kp_color, "targetKp", vtarg);
-	viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 2, "targetKp");
+	viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "targetKp");
 	// Display correspondences
 	viewer->addPointCloud<PointT> (targetCloud, targetRGB, "corrtargetCloud", vcorr);
     viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "corrtargetCloud");
@@ -71,15 +75,15 @@ Viewer::Viewer (PointCloud::Ptr grabberCloud, PointCloud::Ptr sourceCloud, Point
 	viewer->addText ("Capture | FPS:", 10, 10, "vgrabtext", vgrab);
 	// Viewport 2 (target cloud)
 	viewer->createViewPort (0.5, 0.0, 0.75, 0.5, vtarg);
-	viewer->setBackgroundColor (0, 0, 0, vtarg);
+	viewer->setBackgroundColor (0.1, 0.1, 0.1, vtarg);
 	viewer->addText ("Target", 10, 10, "vtargtext", vtarg);
 	// Viewport 3 (source cloud)
 	viewer->createViewPort (0.75, 0.0, 1.0, 0.5, vsour);
-	viewer->setBackgroundColor (0, 0, 0, vsour);
+	viewer->setBackgroundColor (0.1, 0.1, 0.1, vsour);
 	viewer->addText ("Source", 10, 10, "vsourtext", vsour);
 	// Viewport 4 (correspondences)
 	viewer->createViewPort (0.5, 0.5, 1.0, 1.0, vcorr);
-	viewer->setBackgroundColor (0, 0, 0, vcorr);
+	viewer->setBackgroundColor (0.1, 0.1, 0.1, vcorr);
 	viewer->addText ("Correspondences", 10, 10, "vcorrtext", vcorr);
 	// Viewport 5 (final correspondences)
 	//viewer->createViewPort (0.75, 0.0, 1.0, 0.5, vfcorr);
@@ -87,7 +91,7 @@ Viewer::Viewer (PointCloud::Ptr grabberCloud, PointCloud::Ptr sourceCloud, Point
 	//viewer->addText ("Final corresp.", 10, 10, "vfcorrtext", vfcorr);
 	// Viewport 6 (composition)
 	viewer->createViewPort (0.0, 0.0, 0.5, 0.5, vcomp);
-	viewer->setBackgroundColor (0, 0, 0, vcomp);
+	viewer->setBackgroundColor (0.1, 0.1, 0.1, vcomp);
 	viewer->addText ("Composition", 10, 10, "vcomptext", vcomp);
 	// Make grabber independent from the rest
 	viewer->createViewPortCamera (vgrab);
@@ -157,6 +161,19 @@ void Viewer::updateCorrespondences (pcl::CorrespondencesPtr correspondences, Poi
 	    // Draw the line
 	    viewer->addLine (p_left, p_right, r, g, b, ss.str(), vcorr);
 	}
+}
+
+void Viewer::addFinalMesh (pcl::PolygonMesh::Ptr mesh_in)
+{
+	// 1 - Remove composCloud
+	viewer->removeAllPointClouds(vcomp);
+	// 2 - Add mesh to compos Viewport
+	viewer->addPolygonMesh(*mesh_in, "mesh", vcomp);
+}
+
+void Viewer::updateCorrespondenceTransform (Eigen::Matrix4f new_transform)
+{
+	correspondence_cloud_transform = new_transform;
 }
 
 void Viewer::updateFPS (std::string fps)

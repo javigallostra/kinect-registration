@@ -5,7 +5,7 @@ void CoarsePairwiseAligner::computeNormals (PointCloud::Ptr cloud, Normals::Ptr 
 {
 	// Prepare the normal estimator
 	normal_estimator.setInputCloud(cloud);
-	normal_estimator.setSearchMethod(kd_tree);
+	normal_estimator.setNumberOfThreads(8);
 	normal_estimator.setRadiusSearch(0.03);
 	// Compute the normals
 	normal_estimator.compute(*normals_out);
@@ -23,8 +23,9 @@ void CoarsePairwiseAligner::computeFeatures (PointCloud::Ptr cloud, Normals::Ptr
 	// Prepare estimation
 	feature_estimator.setSearchSurface(cloud);
 	feature_estimator.setInputNormals(normals);
-	feature_estimator.setRadiusSearch(0.03); // TODO change
+	feature_estimator.setRadiusSearch(0.03);
 	feature_estimator.setInputCloud(keypoints);
+	feature_estimator.setNumberOfThreads(4);
 	// Compute features
 	feature_estimator.compute(*features_out);
 	// Purge features
@@ -72,8 +73,8 @@ void CoarsePairwiseAligner::estimateTransform ()
 	// SAC bad correspondence rejector
 	correspondence_rejector.setInputSource(source_keypoints);
 	correspondence_rejector.setInputTarget(target_keypoints);
-	correspondence_rejector.setInlierThreshold(0.2);//0.2
-	correspondence_rejector.setMaximumIterations(1000000);
+	correspondence_rejector.setInlierThreshold(0.2);
+	correspondence_rejector.setMaximumIterations(1000);
 	correspondence_rejector.setRefineModel(true);//false
 	correspondence_rejector.setInputCorrespondences(correspondences);
 	correspondence_rejector.getCorrespondences(*correspondences_filtered);
@@ -95,7 +96,6 @@ CoarsePairwiseAligner::CoarsePairwiseAligner (bool verb)
 	source_features.reset(new Features);
 	target_features.reset(new Features);
 	transformation_matrix = Eigen::Matrix4f::Identity();
-	normal_estimator.setNumberOfThreads(4);
 }
 
 void CoarsePairwiseAligner::align (PointCloud::Ptr source_cloud, PointCloud::Ptr target_cloud)

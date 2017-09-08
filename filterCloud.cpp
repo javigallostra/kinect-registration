@@ -16,7 +16,7 @@ void cloudFilters::passthroughFilter(PointCloud::Ptr cloud_in, PointCloud::Ptr c
     // 1- Build the filter
     ptfilter.setInputCloud (cloud_in);
     ptfilter.setFilterFieldName ("z");
-    ptfilter.setFilterLimits (0.0, 2.0);
+    ptfilter.setFilterLimits (0.0, 2);
     // 2 - Apply filter
     ptfilter.filter (*cloud_out);
     if (verbose) {std::cout << "Cloud size after PassThrough filter: " << cloud_out->size() << std::endl;}

@@ -1,7 +1,10 @@
 #include "kp_detectors.h"
 
+typedef pcl::PointXYZRGB PointType;
+
 void KeypointDetector::computeSIFT3DKeypoints (PointCloud::Ptr cloud, PointCloud::Ptr keypoints_out, Normals::Ptr cloud_normals)
 {
+	kd_tree->setInputCloud(cloud);
 	SIFT3D_detector.setSearchMethod(kd_tree);
 	SIFT3D_detector.setScales(0.03f, 3, 4);
 	SIFT3D_detector.setMinimumContrast(0.001f);
@@ -21,8 +24,9 @@ void KeypointDetector::computeISS3DKeypoints (PointCloud::Ptr cloud, PointCloud:
 	double gamma_21 = 0.975;
 	double gamma_32 = 0.975;
 	double min_neighbors = 5;
-	int threads = 1;
+	int threads = 4;
 	// Prepare detector
+	kd_tree->setInputCloud(cloud);
 	ISS3D_detector.setSearchMethod (kd_tree);
 	ISS3D_detector.setSalientRadius (salient_radius);
 	ISS3D_detector.setNonMaxRadius (non_max_radius);
@@ -35,6 +39,37 @@ void KeypointDetector::computeISS3DKeypoints (PointCloud::Ptr cloud, PointCloud:
 	ISS3D_detector.setInputCloud (cloud);
 	// Compute Keypoints
 	ISS3D_detector.compute (*keypoints_out);
+}
+
+void KeypointDetector::computeNARFKeypoints (PointCloud::Ptr cloud, PointCloud::Ptr keypoints_out)
+{
+	// 1 - Create range image
+	Eigen::Affine3f sensorPose = Eigen::Affine3f(Eigen::Translation3f(cloud->sensor_origin_[0], cloud->sensor_origin_[1], cloud->sensor_origin_[2]))*Eigen::Affine3f(cloud->sensor_orientation_);
+	boost::shared_ptr<pcl::RangeImage> range_image_ptr (new pcl::RangeImage);
+	pcl::RangeImage& range_image = *range_image_ptr;
+	float angularResolution = pcl::deg2rad(1/(((512.0f / 70.6f) + (424.0f / 60.0f)) / 2.0f));  // average pixels/radian
+	float maxAngleWidth = pcl::deg2rad(70.6f);
+	float maxAngleHeight = pcl::deg2rad(60.0f);
+	float noiseLevel = 0.0f;
+	float minRange = 0.0f;
+	int borderSize = 1;
+	range_image.createFromPointCloud (*cloud, angularResolution, maxAngleWidth, maxAngleHeight, sensorPose, pcl::RangeImage::CAMERA_FRAME, noiseLevel, minRange, borderSize);
+	std::cout << range_image << std::endl;
+	// 2 - Compute keypoints
+	pcl::RangeImageBorderExtractor rangeImageBorderExtractor;
+	NARF_detector.setRangeImageBorderExtractor(&rangeImageBorderExtractor);
+	NARF_detector.setRangeImage(&range_image);
+	NARF_detector.getParameters().support_size = 0.2f;
+	NARF_detector.setRadiusSearch(0.03);
+	pcl::PointCloud<int> kp_indices;
+	NARF_detector.compute(kp_indices);
+	// 3 - Fill keypoints_out cloud
+	keypoints_out->points.resize(kp_indices.points.size());
+	pcl::PointWithRange current_point;
+	for (size_t i=0; i<kp_indices.points.size(); ++i)
+	{
+		keypoints_out->points[i].getVector3fMap() = range_image.points[kp_indices.points[i]].getVector3fMap();
+	}
 }
 
 double KeypointDetector::computeResolution (PointCloud::Ptr cloud)
@@ -73,6 +108,7 @@ KeypointDetector::KeypointDetector ()
 {
 	// Set SIFT3D by default
 	keypoints_type = "ISS3D";
+	kd_tree.reset(new pcl::search::KdTree<PointT>);
 }
 
 void KeypointDetector::computeKeypoints (PointCloud::Ptr cloud, PointCloud::Ptr keypoints_out, Normals::Ptr cloud_normals)
@@ -85,6 +121,10 @@ void KeypointDetector::computeKeypoints (PointCloud::Ptr cloud, PointCloud::Ptr 
 	else if (keypoints_type == "ISS3D")
 	{
 		computeISS3DKeypoints(cloud, keypoints_out);
+	}
+	else if (keypoints_type == "NARF")
+	{
+		computeNARFKeypoints(cloud, keypoints_out);
 	}
 	// 2 - Filter NaN keypoints
 	std::vector<int> indices;
