@@ -1,4 +1,5 @@
 #include "typedefs.h"
+#include "timer.h"
 
 #include <pcl/filters/filter.h>
 
@@ -33,10 +34,11 @@ class CoarsePairwiseAligner
 		pcl::registration::TransformationEstimationSVD<PointT, PointT> transformation_estimator;
 		Eigen::Matrix4f transformation_matrix;
 
+		Timer timeit;
+
 		void computeNormals (PointCloud::Ptr cloud, Normals::Ptr normals_out);
 
-		void computeKeypoints (PointCloud::Ptr cloud, Normals::Ptr cloud_normals,
-			PointCloud::Ptr keypoints_out);
+		void computeKeypoints (PointCloud::Ptr cloud, PointCloud::Ptr keypoints_out);
 
 		void computeFeatures (PointCloud::Ptr cloud, Normals::Ptr normals,
 			PointCloud::Ptr keypoints, Features::Ptr features_out);

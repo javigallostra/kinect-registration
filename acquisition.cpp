@@ -89,7 +89,7 @@ void ImageGrabber::captureFrame ()
 	rgb_frame = frames[libfreenect2::Frame::Color];
 	ir_frame = frames[libfreenect2::Frame::Ir];
 	depth_frame = frames[libfreenect2::Frame::Depth];
-	// Register depth to rgb and flip data
+	// Register depth to rgb
 	registration->apply(rgb_frame, depth_frame, undistorted_frame, registered_frame);
 	// Fill pcl cloud
 	frame_cloud->width = image_width;
@@ -98,12 +98,14 @@ void ImageGrabber::captureFrame ()
 	frame_cloud->points.resize (frame_cloud->width * frame_cloud->height);
 	float X, Y, Z, RGB;
 	int counter = 0;
+	// For each pixel inside the desired range
 	for (int xi = width_gap; xi < (registered_frame->width - width_gap); xi++)
 	{
 		for (int yi = height_gap; yi < (registered_frame->height - height_gap); yi++)
 		{
+			// Get real world coordinates
 			registration->getPointXYZRGB(undistorted_frame, registered_frame, yi, xi, X, Y, Z, RGB);
-			frame_cloud->points[counter].x = -X;
+			frame_cloud->points[counter].x = -X; // mirror image
 			frame_cloud->points[counter].y = Y;
 			frame_cloud->points[counter].z = Z;
 			frame_cloud->points[counter].rgb = RGB;

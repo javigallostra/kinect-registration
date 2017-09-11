@@ -11,10 +11,9 @@ void CoarsePairwiseAligner::computeNormals (PointCloud::Ptr cloud, Normals::Ptr 
 	normal_estimator.compute(*normals_out);
 }
 
-void CoarsePairwiseAligner::computeKeypoints (PointCloud::Ptr cloud, Normals::Ptr cloud_normals,
-	PointCloud::Ptr keypoints_out)
+void CoarsePairwiseAligner::computeKeypoints (PointCloud::Ptr cloud, PointCloud::Ptr keypoints_out)
 {
-	kp_detector.computeKeypoints(cloud, keypoints_out, cloud_normals);
+	kp_detector.computeKeypoints(cloud, keypoints_out);
 }
 
 void CoarsePairwiseAligner::computeFeatures (PointCloud::Ptr cloud, Normals::Ptr normals,
@@ -118,9 +117,9 @@ void CoarsePairwiseAligner::align (PointCloud::Ptr source_cloud, PointCloud::Ptr
 	if (verbose) {std::cout << "Target nm: " << target_normals->size() << std::endl;}
 	// 2 - Compute keypoints
 	if (verbose) {std::cout << "Computing keypoints..." << std::endl;}
-	computeKeypoints(source_cloud, source_normals, source_keypoints);
+	computeKeypoints(source_cloud, source_keypoints);
 	if (verbose) {std::cout << "Source kp: " << source_keypoints->size() << std::endl;}
-	computeKeypoints(target_cloud, target_normals, target_keypoints);
+	computeKeypoints(target_cloud, target_keypoints);
 	if (verbose) {std::cout << "Target kp: " << target_keypoints->size() << std::endl;}
 	// 3 - Compute feature descriptors for the keypoints
 	if (verbose) {std::cout << "Computing features..." << std::endl;}
@@ -157,7 +156,7 @@ void CoarsePairwiseAligner::alignToLast (PointCloud::Ptr source_cloud)
 	if (verbose) {std::cout << "Source nm: " << source_normals->size() << " | Target nm: " << target_normals->size() << std::endl;}
 	// 2 - Compute keypoints
 	if (verbose) {std::cout << "Computing source keypoints..." << std::endl;}
-	computeKeypoints(source_cloud, source_normals, source_keypoints);
+	computeKeypoints(source_cloud, source_keypoints);
 	if (verbose) {std::cout << "Source kp: " << source_keypoints->size() << " | Target kp: " << target_keypoints->size() << std::endl;}
 	// 3 - Compute feature descriptors for the keypoints
 	if (verbose) {std::cout << "Computing source features..." << std::endl;}

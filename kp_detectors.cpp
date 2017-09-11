@@ -1,8 +1,7 @@
 #include "kp_detectors.h"
 
-typedef pcl::PointXYZRGB PointType;
 
-void KeypointDetector::computeSIFT3DKeypoints (PointCloud::Ptr cloud, PointCloud::Ptr keypoints_out, Normals::Ptr cloud_normals)
+void KeypointDetector::computeSIFT3DKeypoints (PointCloud::Ptr cloud, PointCloud::Ptr keypoints_out)
 {
 	kd_tree->setInputCloud(cloud);
 	SIFT3D_detector.setSearchMethod(kd_tree);
@@ -27,16 +26,16 @@ void KeypointDetector::computeISS3DKeypoints (PointCloud::Ptr cloud, PointCloud:
 	int threads = 4;
 	// Prepare detector
 	kd_tree->setInputCloud(cloud);
-	ISS3D_detector.setSearchMethod (kd_tree);
-	ISS3D_detector.setSalientRadius (salient_radius);
-	ISS3D_detector.setNonMaxRadius (non_max_radius);
-	ISS3D_detector.setNormalRadius (normal_radius);
-	ISS3D_detector.setBorderRadius (border_radius);
-	ISS3D_detector.setThreshold21 (gamma_21);
-	ISS3D_detector.setThreshold32 (gamma_32);
-	ISS3D_detector.setMinNeighbors (min_neighbors);
-	ISS3D_detector.setNumberOfThreads (threads);
-	ISS3D_detector.setInputCloud (cloud);
+	ISS3D_detector.setSearchMethod(kd_tree);
+	ISS3D_detector.setSalientRadius(salient_radius);
+	ISS3D_detector.setNonMaxRadius(non_max_radius);
+	ISS3D_detector.setNormalRadius(normal_radius);
+	ISS3D_detector.setBorderRadius(border_radius);
+	ISS3D_detector.setThreshold21(gamma_21);
+	ISS3D_detector.setThreshold32(gamma_32);
+	ISS3D_detector.setMinNeighbors(min_neighbors);
+	ISS3D_detector.setNumberOfThreads(threads);
+	ISS3D_detector.setInputCloud(cloud);
 	// Compute Keypoints
 	ISS3D_detector.compute (*keypoints_out);
 }
@@ -54,7 +53,6 @@ void KeypointDetector::computeNARFKeypoints (PointCloud::Ptr cloud, PointCloud::
 	float minRange = 0.0f;
 	int borderSize = 1;
 	range_image.createFromPointCloud (*cloud, angularResolution, maxAngleWidth, maxAngleHeight, sensorPose, pcl::RangeImage::CAMERA_FRAME, noiseLevel, minRange, borderSize);
-	std::cout << range_image << std::endl;
 	// 2 - Compute keypoints
 	pcl::RangeImageBorderExtractor rangeImageBorderExtractor;
 	NARF_detector.setRangeImageBorderExtractor(&rangeImageBorderExtractor);
@@ -89,7 +87,7 @@ double KeypointDetector::computeResolution (PointCloud::Ptr cloud)
 		{
 	  		continue;
 		}
-		//Considering the second neighbor since the first is the point itself.
+		// Considering the second neighbor since the first is the point itself.
 		nres = tree.nearestKSearch (i, 2, indices, sqr_distances);
 		if (nres == 2)
 		{
@@ -111,12 +109,12 @@ KeypointDetector::KeypointDetector ()
 	kd_tree.reset(new pcl::search::KdTree<PointT>);
 }
 
-void KeypointDetector::computeKeypoints (PointCloud::Ptr cloud, PointCloud::Ptr keypoints_out, Normals::Ptr cloud_normals)
+void KeypointDetector::computeKeypoints (PointCloud::Ptr cloud, PointCloud::Ptr keypoints_out)
 {
 	// 1 - Compute Keypoints
 	if (keypoints_type == "SIFT3D")
 	{
-		computeSIFT3DKeypoints(cloud, keypoints_out, cloud_normals);
+		computeSIFT3DKeypoints(cloud, keypoints_out);
 	}
 	else if (keypoints_type == "ISS3D")
 	{

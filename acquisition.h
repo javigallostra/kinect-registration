@@ -1,4 +1,5 @@
 #include "typedefs.h"
+#include "filterCloud.h"
 
 #include <stdio.h> // basics
 #include <iostream>
@@ -44,6 +45,8 @@ class ImageGrabber
 
 		PointCloud::Ptr frame_cloud;
 		pcl::PCDWriter pcd_writer;
+
+		CloudFilters filters;
 
 		int initializeGrabber ();
 

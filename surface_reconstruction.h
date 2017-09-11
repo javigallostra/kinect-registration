@@ -6,7 +6,7 @@
 #include <pcl/kdtree/kdtree_flann.h>
 #include <pcl/filters/voxel_grid.h>
 
-class surfaceReconstructor
+class SurfaceReconstructor
 {
 	private:
 		pcl::MovingLeastSquares<PointT, PointNormal> mls;
@@ -25,7 +25,9 @@ class surfaceReconstructor
 
 	public:
 
-		surfaceReconstructor (bool verb);
+		SurfaceReconstructor (bool verb);
 
 		void reconstruct (PointCloud::Ptr cloud_in, PointCloudNormal::Ptr cloud_out, pcl::PolygonMesh::Ptr mesh_out);
+
+		void setReconstructionMethod (std::string new_method);
 };

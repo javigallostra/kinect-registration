@@ -1,6 +1,6 @@
 #include "filterCloud.h"
 
-void cloudFilters::radiusOutlierRemovalFilter(PointCloud::Ptr cloud_in, PointCloud::Ptr cloud_out)
+void CloudFilters::radiusOutlierRemovalFilter(PointCloud::Ptr cloud_in, PointCloud::Ptr cloud_out)
 {
     // 1- Build the filter
     outrem.setInputCloud(cloud_in);
@@ -11,7 +11,7 @@ void cloudFilters::radiusOutlierRemovalFilter(PointCloud::Ptr cloud_in, PointClo
     if (verbose) {std::cout << "Cloud size after RadiusOutlierRemoval filter: " << cloud_out->size() << std::endl;}
 }
 
-void cloudFilters::passthroughFilter(PointCloud::Ptr cloud_in, PointCloud::Ptr cloud_out)
+void CloudFilters::passthroughFilter(PointCloud::Ptr cloud_in, PointCloud::Ptr cloud_out)
 {
     // 1- Build the filter
     ptfilter.setInputCloud (cloud_in);
@@ -22,7 +22,7 @@ void cloudFilters::passthroughFilter(PointCloud::Ptr cloud_in, PointCloud::Ptr c
     if (verbose) {std::cout << "Cloud size after PassThrough filter: " << cloud_out->size() << std::endl;}
 }
 
-void cloudFilters::voxelFilter(PointCloud::Ptr cloud_in, PointCloud::Ptr cloud_out)
+void CloudFilters::voxelFilter(PointCloud::Ptr cloud_in, PointCloud::Ptr cloud_out)
 {
     // 1 - Build filter
     voxel_downsampler.setInputCloud (cloud_in);
@@ -32,7 +32,7 @@ void cloudFilters::voxelFilter(PointCloud::Ptr cloud_in, PointCloud::Ptr cloud_o
     if (verbose) { std::cout << "Cloud size after VoxelGrid filter: " << cloud_out->size() << std::endl;}
 }
 
-void cloudFilters::applyAllFilters(PointCloud::Ptr cloud_in, PointCloud::Ptr cloud_out)
+void CloudFilters::applyAllFilters(PointCloud::Ptr cloud_in, PointCloud::Ptr cloud_out)
 {
     // 1 - Make a copy of the cloud
     PointCloud::Ptr cloud_handler (new PointCloud);
@@ -51,12 +51,12 @@ void cloudFilters::applyAllFilters(PointCloud::Ptr cloud_in, PointCloud::Ptr clo
     radiusOutlierRemovalFilter(second_filtered, cloud_out);
 }
 
-void cloudFilters::setVerbose (bool verb)
+void CloudFilters::setVerbose (bool verb)
 {
     verbose = verb;
 }
 
-cloudFilters::cloudFilters ()
+CloudFilters::CloudFilters ()
 {
     verbose = false;
 }

@@ -31,7 +31,6 @@ FineAligner::FineAligner (bool verb)
     transformed_cloud.reset(new PointCloudNormal);
     // Set ICP criteria
     icp.setMaxCorrespondenceDistance (0.1);
-    icp.setRANSACOutlierRejectionThreshold(0.001);
     icp.setMaximumIterations(30);
     icp.setTransformationEpsilon (1e-8);
 }

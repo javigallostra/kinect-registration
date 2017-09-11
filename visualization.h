@@ -15,7 +15,9 @@ class Viewer
 
 		Visualizer::Ptr viewer;
 
-		Eigen::Matrix4f correspondence_cloud_transform;
+		Eigen::Matrix4f correspondence_source_transform;
+
+		Eigen::Matrix4f correspondence_target_transform;
 
 	public:
 
@@ -28,8 +30,6 @@ class Viewer
 		void updateClouds (PointCloud::Ptr sourceCloud, PointCloud::Ptr targetCloud, PointCloud::Ptr composCloud, PointCloud::Ptr sourceKp, PointCloud::Ptr targetKp);
 
 		void updateCorrespondences (pcl::CorrespondencesPtr correspondences, PointCloud::Ptr sourceKp, PointCloud::Ptr targetKp);
-
-		void updateFinalCorrespondences (pcl::CorrespondencesPtr final_correspondences);
 
 		void updateCorrespondenceTransform (Eigen::Matrix4f new_transform);
 

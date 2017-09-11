@@ -8,7 +8,7 @@
 #include <pcl/filters/passthrough.h>
 #include <pcl/filters/voxel_grid.h>
 
-class cloudFilters
+class CloudFilters
 {
 	private:
 		bool verbose;
@@ -30,7 +30,7 @@ class cloudFilters
 
 		void setVerbose (bool verb);
 
-		cloudFilters ();
+		CloudFilters ();
 };
 
 #endif

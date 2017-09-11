@@ -1,6 +1,6 @@
 #include "surface_reconstruction.h"
 
-surfaceReconstructor::surfaceReconstructor (bool verb)
+SurfaceReconstructor::SurfaceReconstructor (bool verb)
 {
 	verbose = verb;
 	method = "GREEDY";
@@ -23,7 +23,7 @@ surfaceReconstructor::surfaceReconstructor (bool verb)
 	gp3.setNormalConsistency(false);
 }
 
-void surfaceReconstructor::reconstruct (PointCloud::Ptr cloud_in, PointCloudNormal::Ptr cloud_out, pcl::PolygonMesh::Ptr mesh_out)
+void SurfaceReconstructor::reconstruct (PointCloud::Ptr cloud_in, PointCloudNormal::Ptr cloud_out, pcl::PolygonMesh::Ptr mesh_out)
 {
 	PointCloudNormal::Ptr cloud_handler (new PointCloudNormal);
 	// 1 - Apply MLS to smooth surface
@@ -49,4 +49,9 @@ void surfaceReconstructor::reconstruct (PointCloud::Ptr cloud_in, PointCloudNorm
 		gp3.reconstruct(*mesh_out);
 	}
 	if (verbose) {std::cout << "Mesh finished." << std::endl;}
+}
+
+void SurfaceReconstructor::setReconstructionMethod (std::string new_method)
+{
+	method = new_method;
 }

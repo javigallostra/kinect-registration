@@ -5,6 +5,7 @@
 #include "filterCloud.h"
 #include "fine_align.h"
 #include "surface_reconstruction.h"
+#include "timer.h"
 
 #include <pcl/io/pcd_io.h>
 #include <pcl/common/common_headers.h>
@@ -12,7 +13,6 @@
 #include <boost/thread/thread.hpp>
 
 #include <dirent.h>
-#include <ctime>
 #include <sstream>
 
 
@@ -61,8 +61,8 @@ void get_files_from_dir (std::string directory_path, std::vector<std::string> &f
 int main (int argc, char** argv)
 {
 	// Clock
-	std::clock_t start;
-	double seconds;
+	Timer timeit (true, false);
+	Timer timeit2;
 	std::ostringstream fps_str;
 	std::string fps;
 	// Default settings
@@ -141,8 +141,8 @@ int main (int argc, char** argv)
 	coarse_aligner.setKeypointDetectorType(kp_type);
 	FineAligner fine_aligner (verbose);
 	ImageGrabber grabber (false);
-	cloudFilters filters;
-	surfaceReconstructor surfaceConstructor (verbose);
+	CloudFilters filters;
+	SurfaceReconstructor surfaceConstructor (verbose);
 
 	// Load first cloud
 	if (capture)
@@ -160,7 +160,7 @@ int main (int argc, char** argv)
     // Main loop
 	while (viewerObj.getPressedID() != 2)
 	{
-		start = std::clock();
+		timeit.tic();
 		// 1.1 - When Enter or continuous, process cloud
 		if ((viewerObj.getPressedID() == 1 and load_more) or continuous)
 		{
@@ -201,7 +201,8 @@ int main (int argc, char** argv)
 					// Align
 					coarse_aligner.alignToLast(sourceCloud);
 				}
-				viewerObj.updateCorrespondenceTransform(coarse_aligner.getFinalTransformation());
+				// Uncomment to view coarse align results instead of correspondence lines
+				// viewerObj.updateCorrespondenceTransform(coarse_aligner.getFinalTransformation());
 				// FINE ALIGN
 				pcl::concatenateFields(*targetCloud, *(coarse_aligner.getTargetNormals()), *targetNormalCloud);
 				pcl::concatenateFields(*sourceCloud, *(coarse_aligner.getSourceNormals()), *sourceNormalCloud);
@@ -280,14 +281,13 @@ int main (int argc, char** argv)
 			else if (pictures != last_loaded)
 			{
 				load_cloud("./images/" + files_to_load[pictures], grabberCloud, verbose);
-				filters.applyAllFilters(grabberCloud, grabberCloud);
 				last_loaded = pictures;
 			}
 		}
 		// 3 - Update image and fps
-		seconds = (std::clock()- start) / (double) CLOCKS_PER_SEC;
+		timeit.toc();
 		fps_str.str("");
-		fps_str << (1/seconds);
+		fps_str << (1/timeit.getElapsedTime()) << " | " << timeit.getElapsedTime() << " s";
 		viewerObj.updateFPS(fps_str.str());
 		viewerObj.updateGrabber(grabberCloud);
 		viewer->spinOnce(10);
@@ -296,7 +296,3 @@ int main (int argc, char** argv)
 	std::cout << "Escape pressed, exiting program." << std::endl;
 	return(0);
 }
-
-// Filters: when to filter...
-// Save files for checking ICP!!!!
-// Timer

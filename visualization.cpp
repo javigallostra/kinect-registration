@@ -52,11 +52,13 @@ void Viewer::displayClouds (PointCloud::Ptr grabberCloud, PointCloud::Ptr source
    	viewer->addPointCloud<PointT> (targetKp, tgt_kp_color, "targetKp", vtarg);
 	viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "targetKp");
 	// Display correspondences
-	viewer->addPointCloud<PointT> (targetCloud, targetRGB, "corrtargetCloud", vcorr);
+	PointCloud::Ptr transformedTarget (new PointCloud);
+	pcl::transformPointCloud(*targetCloud, *transformedTarget, correspondence_target_transform);
+	viewer->addPointCloud<PointT> (transformedTarget, targetRGB, "corrtargetCloud", vcorr);
     viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "corrtargetCloud");
-	PointCloud::Ptr transformed (new PointCloud);
-	pcl::transformPointCloud(*sourceCloud, *transformed, correspondence_cloud_transform);
-	viewer->addPointCloud<PointT> (transformed, sourceRGB, "corrsourceCloud", vcorr);
+	PointCloud::Ptr transformedSource (new PointCloud);
+	pcl::transformPointCloud(*sourceCloud, *transformedSource, correspondence_source_transform);
+	viewer->addPointCloud<PointT> (transformedSource, sourceRGB, "corrsourceCloud", vcorr);
     viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "corrsourceCloud");
 }
 
@@ -66,8 +68,10 @@ Viewer::Viewer (PointCloud::Ptr grabberCloud, PointCloud::Ptr sourceCloud, Point
 	viewer.reset(new Visualizer ("Cloud Viewer"));
 	viewer->initCameraParameters();
 	vgrab, vtarg, vsour, vcorr, vfcorr, vcomp, pressedID = 0;
-	correspondence_cloud_transform = Eigen::Matrix4f::Identity();
-	correspondence_cloud_transform(0, 3) = 2; // x translation
+	correspondence_source_transform = Eigen::Matrix4f::Identity();
+	correspondence_source_transform(0, 3) = 1.5; // x translation
+	correspondence_target_transform = Eigen::Matrix4f::Identity();
+	correspondence_target_transform(0, 3) = -1.5; // x translation
 	// 2 - Create viewports and position cameras
 	// Viewport 1 (capture)
 	viewer->createViewPort (0.0, 0.5, 0.5, 1.0, vgrab);
@@ -85,11 +89,7 @@ Viewer::Viewer (PointCloud::Ptr grabberCloud, PointCloud::Ptr sourceCloud, Point
 	viewer->createViewPort (0.5, 0.5, 1.0, 1.0, vcorr);
 	viewer->setBackgroundColor (0.1, 0.1, 0.1, vcorr);
 	viewer->addText ("Correspondences", 10, 10, "vcorrtext", vcorr);
-	// Viewport 5 (final correspondences)
-	//viewer->createViewPort (0.75, 0.0, 1.0, 0.5, vfcorr);
-	//viewer->setBackgroundColor (0, 0, 0, vfcorr);
-	//viewer->addText ("Final corresp.", 10, 10, "vfcorrtext", vfcorr);
-	// Viewport 6 (composition)
+	// Viewport 5 (composition)
 	viewer->createViewPort (0.0, 0.0, 0.5, 0.5, vcomp);
 	viewer->setBackgroundColor (0.1, 0.1, 0.1, vcomp);
 	viewer->addText ("Composition", 10, 10, "vcomptext", vcomp);
@@ -125,25 +125,29 @@ void Viewer::updateClouds (PointCloud::Ptr sourceCloud, PointCloud::Ptr targetCl
     viewer->updatePointCloud (sourceKp, src_kp_color, "sourceKp");
     pcl::visualization::PointCloudColorHandlerCustom<PointT> tgt_kp_color (targetKp, 0, 255, 0);
     viewer->updatePointCloud (targetKp, tgt_kp_color, "targetKp");
-    viewer->updatePointCloud (targetCloud, "corrtargetCloud");
-    PointCloud::Ptr transformed (new PointCloud);
-	pcl::transformPointCloud(*sourceCloud, *transformed, correspondence_cloud_transform);
-    viewer->updatePointCloud (transformed, "corrsourceCloud");
+    PointCloud::Ptr transformedTarget (new PointCloud);
+    pcl::transformPointCloud (*targetCloud, *transformedTarget, correspondence_target_transform);
+    viewer->updatePointCloud (transformedTarget, "corrtargetCloud");
+    PointCloud::Ptr transformedSource (new PointCloud);
+	pcl::transformPointCloud(*sourceCloud, *transformedSource, correspondence_source_transform);
+    viewer->updatePointCloud (transformedSource, "corrsourceCloud");
 }
 
 void Viewer::updateCorrespondences (pcl::CorrespondencesPtr correspondences, PointCloud::Ptr sourceKp, PointCloud::Ptr targetKp)
 {
 	// Remove previous
 	viewer->removeAllShapes(vcorr);
-	// Translation of target keypoints
+	// Translation of keypoints
 	PointCloud::Ptr transformed_sourceKp (new PointCloud);
-	pcl::transformPointCloud(*sourceKp, *transformed_sourceKp, correspondence_cloud_transform);
+	pcl::transformPointCloud (*sourceKp, *transformed_sourceKp, correspondence_source_transform);
+	PointCloud::Ptr transformed_targetKp (new PointCloud);
+	pcl::transformPointCloud (*targetKp, *transformed_targetKp, correspondence_target_transform);
 	// Correspondence loop drawing
 	for (size_t i = 0; i < (*correspondences).size (); ++i)
 	{
 	    // Get the pair of points
 	    const PointT & p_left = transformed_sourceKp->points[(*correspondences)[i].index_query];
-	    const PointT & p_right = targetKp->points[(*correspondences)[i].index_match];
+	    const PointT & p_right = transformed_targetKp->points[(*correspondences)[i].index_match];
 
 	    // Generate a random (bright) color
 	    double r = (rand() % 100);
@@ -173,7 +177,10 @@ void Viewer::addFinalMesh (pcl::PolygonMesh::Ptr mesh_in)
 
 void Viewer::updateCorrespondenceTransform (Eigen::Matrix4f new_transform)
 {
-	correspondence_cloud_transform = new_transform;
+	// Used to display the result of coarse alignment
+	correspondence_source_transform = new_transform;
+	// Set target back to 0,0,0
+	correspondence_target_transform(0, 3) = 0;
 }
 
 void Viewer::updateFPS (std::string fps)

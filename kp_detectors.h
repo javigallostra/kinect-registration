@@ -1,4 +1,5 @@
 #include "typedefs.h"
+#include "timer.h"
 #include <pcl/point_types.h>
 #include <pcl/filters/filter.h>
 #include <pcl/keypoints/sift_keypoint.h>
@@ -17,8 +18,9 @@ class KeypointDetector
 		pcl::SIFTKeypoint<PointT, PointT> SIFT3D_detector;
 		pcl::ISSKeypoint3D<PointT, PointT> ISS3D_detector;
 		pcl::NarfKeypoint NARF_detector;
+		Timer timeit;
 		
-		void computeSIFT3DKeypoints (PointCloud::Ptr cloud, PointCloud::Ptr keypoints_out, Normals::Ptr cloud_normals);
+		void computeSIFT3DKeypoints (PointCloud::Ptr cloud, PointCloud::Ptr keypoints_out);
 
 		void computeISS3DKeypoints (PointCloud::Ptr cloud, PointCloud::Ptr keypoints_out);
 
@@ -30,7 +32,7 @@ class KeypointDetector
 
 		KeypointDetector ();
 
-		void computeKeypoints (PointCloud::Ptr cloud, PointCloud::Ptr keypoints_out, Normals::Ptr cloud_normals);
+		void computeKeypoints (PointCloud::Ptr cloud, PointCloud::Ptr keypoints_out);
 
 		void setKeypointType (std::string kp_type);
 
