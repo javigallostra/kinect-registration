@@ -1,0 +1,7 @@
+### Info ###
+
+This project was developed by Javier Gallostra as a Bachelor's Thesis as part of the Industrial Engineering programme.
+
+It was directed by Federico Thomas from Barcelona's IRI and presented on September 2017.
+
+Please give credits to the author and director if you freely use this code in your work.
